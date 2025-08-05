@@ -1,0 +1,7 @@
+tensorflow==2.13.0
+numpy==1.24.3
+h5py==3.8.0
+opencv-python==4.7.0.72
+matplotlib==3.7.1
+scikit-learn==1.2.2
+tf2onnx
