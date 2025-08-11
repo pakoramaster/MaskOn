@@ -97,7 +97,7 @@ function MainPage() {
             const frameData = await ffmpeg.readFile(frameName);
             const imageBitmap = await createImageBitmap(new Blob([frameData.buffer], { type: "image/png" }));
             const tensor = await imageToTensor(imageBitmap);
-            const maskTensor = await session.run({ input_7: tensor });
+            const maskTensor = await session.run({ input_1: tensor });
             const outputName = session.outputNames[0];
             const mask = maskTensor[outputName].data;
 
