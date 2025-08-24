@@ -11,8 +11,8 @@ function MainPage() {
     const videoInputRef = useRef();
 
     const imageToTensor = async (imageBitmap) => {
-        const targetWidth = 224;
-        const targetHeight = 128;
+        const targetWidth = 256;
+        const targetHeight = 256;
         const canvas = new OffscreenCanvas(targetWidth, targetHeight);
         const ctx = canvas.getContext("2d");
         ctx.drawImage(imageBitmap, 0, 0, targetWidth, targetHeight);
@@ -97,13 +97,13 @@ function MainPage() {
             const frameData = await ffmpeg.readFile(frameName);
             const imageBitmap = await createImageBitmap(new Blob([frameData.buffer], { type: "image/png" }));
             const tensor = await imageToTensor(imageBitmap);
-            const maskTensor = await session.run({ input_1: tensor });
+            const maskTensor = await session.run({ input_4: tensor });
             const outputName = session.outputNames[0];
             const mask = maskTensor[outputName].data;
 
             // Visualize mask as grayscale image, resized to original frame size
-            const maskWidth = 224;
-            const maskHeight = 128;
+            const maskWidth = 256;
+            const maskHeight = 256;
             const maskCanvasSmall = new OffscreenCanvas(maskWidth, maskHeight);
             const maskCtxSmall = maskCanvasSmall.getContext("2d");
             const maskImageData = maskCtxSmall.createImageData(maskWidth, maskHeight);

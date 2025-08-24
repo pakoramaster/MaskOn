@@ -5,3 +5,4 @@ opencv-python==4.7.0.72
 matplotlib==3.7.1
 scikit-learn==1.2.2
 tf2onnx
+pycocotools
