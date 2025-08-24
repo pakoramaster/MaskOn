@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { FFmpeg } from '@ffmpeg/ffmpeg';
 import { fetchFile } from '@ffmpeg/util';
 import * as ort from 'onnxruntime-web';
@@ -181,34 +181,114 @@ function MainPage() {
         setProcessing(false);
     };
 
+    // Set dark blue background for the entire page
+    useEffect(() => {
+        const originalBg = document.body.style.backgroundColor;
+        document.body.style.backgroundColor = "#ffff";
+        return () => {
+            document.body.style.backgroundColor = originalBg;
+        };
+    }, []);
+
     return (
-        <div>
+        <div
+            style={{
+                minHeight: "100vh",
+                paddingLeft: 24,
+                paddingRight: 24,
+                maxWidth: 700,
+                margin: "0 auto"
+            }}
+        >
             <h1>Video Green Screen Masker</h1>
-            <label>Upload video (.mp4):</label><br />
-            <input type="file" ref={videoInputRef} accept="video/mp4" disabled={processing} /><br />
+            {/* Styled video uploader */}
+            <label
+                htmlFor="video-upload"
+                className="flex flex-col items-center rounded border border-gray-300 bg-white p-4 text-gray-900 shadow-sm sm:p-6 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+                style={{ cursor: processing ? "not-allowed" : "pointer", opacity: processing ? 0.6 : 1, marginBottom: 12 }}
+            >
+                <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    strokeWidth={1.5}
+                    stroke="currentColor"
+                    className="size-6"
+                    style={{ width: 32, height: 32 }}
+                >
+                    <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M7.5 7.5h-.75A2.25 2.25 0 0 0 4.5 9.75v7.5a2.25 2.25 0 0 0 2.25 2.25h7.5a2.25 2.25 0 0 0 2.25-2.25v-7.5a2.25 2.25 0 0 0-2.25-2.25h-.75m0-3-3-3m0 0-3 3m3-3v11.25m6-2.25h.75a2.25 2.25 0 0 1 2.25 2.25v7.5a2.25 2.25 0 0 1-2.25 2.25h-7.5a2.25 2.25 0 0 1-2.25-2.25v-.75"
+                    />
+                </svg>
+                <span className="mt-4 font-medium dark:text-white">Upload your file</span>
+                <span
+                    className="mt-2 inline-block rounded border border-gray-200 bg-gray-50 px-3 py-1.5 text-center text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
+                >
+                    Browse files
+                </span>
+                <input
+                    type="file"
+                    id="video-upload"
+                    ref={videoInputRef}
+                    accept="video/mp4"
+                    className="sr-only"
+                    disabled={processing}
+                />
+            </label>
             <div style={{ margin: "10px 0" }}>
-                <label>
-                    <input
-                        type="radio"
-                        value="green"
-                        checked={screenColor === "green"}
-                        onChange={() => setScreenColor("green")}
-                        disabled={processing}
-                    />
-                    Green Screen
-                </label>
-                <label style={{ marginLeft: 20 }}>
-                    <input
-                        type="radio"
-                        value="blue"
-                        checked={screenColor === "blue"}
-                        onChange={() => setScreenColor("blue")}
-                        disabled={processing}
-                    />
-                    Blue Screen
-                </label>
+                <label className="font-medium mb-2 block">Pick background color:</label>
+                <fieldset className="flex flex-wrap gap-3" style={{ border: "none", padding: 0, margin: 0 }}>
+                    <legend className="sr-only">Color</legend>
+
+                    {/* Green */}
+                    <label
+                        htmlFor="ColorGreen"
+                        className={`block size-8 rounded-full bg-green-500 shadow-sm cursor-pointer ${
+                            screenColor === "green"
+                                ? "ring-2 ring-green-500 ring-offset-2"
+                                : ""
+                        }`}
+                        style={{ display: "inline-block" }}
+                    >
+                        <input
+                            type="radio"
+                            name="ColorOption"
+                            value="green"
+                            id="ColorGreen"
+                            className="sr-only"
+                            checked={screenColor === "green"}
+                            onChange={() => setScreenColor("green")}
+                            disabled={processing}
+                        />
+                        <span className="sr-only">Green</span>
+                    </label>
+
+                    {/* Blue */}
+                    <label
+                        htmlFor="ColorBlue"
+                        className={`block size-8 rounded-full bg-blue-500 shadow-sm cursor-pointer ${
+                            screenColor === "blue"
+                                ? "ring-2 ring-blue-500 ring-offset-2"
+                                : ""
+                        }`}
+                        style={{ display: "inline-block" }}
+                    >
+                        <input
+                            type="radio"
+                            name="ColorOption"
+                            value="blue"
+                            id="ColorBlue"
+                            className="sr-only"
+                            checked={screenColor === "blue"}
+                            onChange={() => setScreenColor("blue")}
+                            disabled={processing}
+                        />
+                        <span className="sr-only">Blue</span>
+                    </label>
+                </fieldset>
             </div>
-            {/* Mask threshold slider */}
             <div style={{ margin: "10px 0", width: 300 }}>
                 <label>
                     Mask Threshold: {maskThreshold.toFixed(2)}
@@ -224,7 +304,14 @@ function MainPage() {
                     />
                 </label>
             </div>
-            <button onClick={handleProcess} disabled={processing}>Process Video</button>
+            <button
+                onClick={handleProcess}
+                disabled={processing}
+                className="inline-block rounded-sm border border-indigo-600 bg-indigo-600 px-12 py-3 text-sm font-medium text-white hover:bg-transparent hover:text-indigo-600 focus:ring-3 focus:outline-hidden transition-colors duration-150"
+                style={{ marginBottom: 16, cursor: processing ? "not-allowed" : "pointer", opacity: processing ? 0.6 : 1 }}
+            >
+                Process Video
+            </button>
             <p>{status}</p>
             {outputUrl && (
                 <div>
