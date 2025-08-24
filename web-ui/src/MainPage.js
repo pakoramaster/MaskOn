@@ -7,6 +7,8 @@ function MainPage() {
     const [status, setStatus] = useState('');
     const [processing, setProcessing] = useState(false);
     const [outputUrl, setOutputUrl] = useState('');
+    const [screenColor, setScreenColor] = useState('green');
+    const [maskThreshold, setMaskThreshold] = useState(0.5);
     const ffmpegRef = useRef(new FFmpeg());
     const videoInputRef = useRef();
 
@@ -31,24 +33,31 @@ function MainPage() {
     };
 
     const applyMask = async (imageBitmap, mask) => {
-        // Overlay mask and generate green screen image
+        // Overlay mask and generate green/blue screen image
         const canvas = new OffscreenCanvas(imageBitmap.width, imageBitmap.height);
         const ctx = canvas.getContext("2d");
         ctx.drawImage(imageBitmap, 0, 0);
         const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
 
-        // mask is expected to be resized to imageBitmap.width x imageBitmap.height
+        // Choose background color based on user selection
+        let bgColor;
+        if (screenColor === 'green') {
+            bgColor = [0, 255, 0];
+        } else {
+            bgColor = [0, 0, 255];
+        }
+
         for (let i = 0; i < mask.length; i++) {
             const maskValue = mask[i];
-            if (maskValue > 0.5) {
+            if (maskValue > maskThreshold) { // <-- Use maskThreshold from state
                 // Foreground: keep original pixel
                 // ...do nothing, keep original RGBA...
             } else {
-                // Background: set to green
-                imageData.data[i * 4 + 0] = 0;   // R
-                imageData.data[i * 4 + 1] = 255; // G
-                imageData.data[i * 4 + 2] = 0;   // B
-                imageData.data[i * 4 + 3] = 255; // A
+                // Background: set to selected color
+                imageData.data[i * 4 + 0] = bgColor[0]; // R
+                imageData.data[i * 4 + 1] = bgColor[1]; // G
+                imageData.data[i * 4 + 2] = bgColor[2]; // B
+                imageData.data[i * 4 + 3] = 255;        // A
             }
         }
         ctx.putImageData(imageData, 0, 0);
@@ -70,6 +79,32 @@ function MainPage() {
         await ffmpeg.writeFile("input.mp4", await fetchFile(videoFile));
         setStatus("Extracting frames...");
         await ffmpeg.exec(["-i", "input.mp4", "-qscale:v", "2", "frame_%03d.png"]);
+
+        // --- Get original frame rate ---
+        setStatus("Detecting original frame rate...");
+        // Write ffprobe output to a file (stdout redirected to file)
+        await ffmpeg.ffprobe([
+            "-v", "error",
+            "-select_streams", "v:0",
+            "-show_entries", "stream=r_frame_rate",
+            "-of", "default=noprint_wrappers=1:nokey=1",
+            "-i", "input.mp4",
+            "-o", "framerate.txt"
+        ]);
+        // Read the file back
+        const frTextData = await ffmpeg.readFile("framerate.txt");
+        const outputStr = new TextDecoder().decode(frTextData);
+
+        // Parse frame rate from file content
+        let frameRate = 30; // fallback
+        try {
+            const match = outputStr.match(/(\d+)\/(\d+)/);
+            if (match) {
+                frameRate = Math.round(parseInt(match[1], 10) / parseInt(match[2], 10));
+            }
+        } catch (e) {
+            // fallback to 30
+        }
 
         setStatus("Loading model...");
         const session = await ort.InferenceSession.create("model.onnx");
@@ -132,7 +167,7 @@ function MainPage() {
 
         setStatus("Encoding final video...");
         await ffmpeg.exec([
-            "-framerate", "30",
+            "-framerate", frameRate.toString(),
             "-i", "masked_frame_%03d.png",
             "-c:v", "libx264",
             "-pix_fmt", "yuv420p",
@@ -151,6 +186,44 @@ function MainPage() {
             <h1>Video Green Screen Masker</h1>
             <label>Upload video (.mp4):</label><br />
             <input type="file" ref={videoInputRef} accept="video/mp4" disabled={processing} /><br />
+            <div style={{ margin: "10px 0" }}>
+                <label>
+                    <input
+                        type="radio"
+                        value="green"
+                        checked={screenColor === "green"}
+                        onChange={() => setScreenColor("green")}
+                        disabled={processing}
+                    />
+                    Green Screen
+                </label>
+                <label style={{ marginLeft: 20 }}>
+                    <input
+                        type="radio"
+                        value="blue"
+                        checked={screenColor === "blue"}
+                        onChange={() => setScreenColor("blue")}
+                        disabled={processing}
+                    />
+                    Blue Screen
+                </label>
+            </div>
+            {/* Mask threshold slider */}
+            <div style={{ margin: "10px 0", width: 300 }}>
+                <label>
+                    Mask Threshold: {maskThreshold.toFixed(2)}
+                    <input
+                        type="range"
+                        min={0.2}
+                        max={0.8}
+                        step={0.05}
+                        value={maskThreshold}
+                        onChange={e => setMaskThreshold(Number(e.target.value))}
+                        disabled={processing}
+                        style={{ width: "100%", marginLeft: 10 }}
+                    />
+                </label>
+            </div>
             <button onClick={handleProcess} disabled={processing}>Process Video</button>
             <p>{status}</p>
             {outputUrl && (
