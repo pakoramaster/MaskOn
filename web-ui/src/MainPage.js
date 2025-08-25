@@ -177,35 +177,45 @@ function MainPage() {
         const outputData = await ffmpeg.readFile("output.mp4");
         const outputBlob = new Blob([outputData.buffer], { type: "video/mp4" });
         setOutputUrl(URL.createObjectURL(outputBlob));
-        setStatus("✅ Done! Download your green screen video below.");
+        setStatus("Download your green screen video below.");
         setProcessing(false);
     };
 
     // Set dark blue background for the entire page
     useEffect(() => {
-        const originalBg = document.body.style.backgroundColor;
-        document.body.style.backgroundColor = "#ffff";
+        // Save original background
+        const originalBg = document.body.style.background;
+
+        // Apply gradient background
+        // document.body.style.background = "linear-gradient(135deg, #091734ff, #081a2dff, #171717)";
+        document.body.style.backgroundColor = "#18202bff";
+
+        // Cleanup: restore original background when unmounted
         return () => {
-            document.body.style.backgroundColor = originalBg;
+        document.body.style.background = originalBg;
         };
     }, []);
 
     return (
+        
         <div
             style={{
                 minHeight: "100vh",
-                paddingLeft: 24,
-                paddingRight: 24,
-                maxWidth: 700,
+                paddingLeft: 20,
+                paddingRight: 20,
+                paddingTop: 40,
+                maxWidth: 600,
                 margin: "0 auto"
             }}
         >
-            <h1>Video Green Screen Masker</h1>
+            <h1 class="text-white font-bold text-3xl pb-1">
+                MaskOn
+            </h1>
             {/* Styled video uploader */}
             <label
                 htmlFor="video-upload"
                 className="flex flex-col items-center rounded border border-gray-300 bg-white p-4 text-gray-900 shadow-sm sm:p-6 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
-                style={{ cursor: processing ? "not-allowed" : "pointer", opacity: processing ? 0.6 : 1, marginBottom: 12 }}
+                style={{ backgroundColor: "#1F2937",cursor: processing ? "not-allowed" : "pointer", opacity: processing ? 0.6 : 1, marginBottom: 12 }}
             >
                 <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -224,7 +234,7 @@ function MainPage() {
                 </svg>
                 <span className="mt-4 font-medium dark:text-white">Upload your file</span>
                 <span
-                    className="mt-2 inline-block rounded border border-gray-200 bg-gray-50 px-3 py-1.5 text-center text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
+                    className="mt-2 inline-block rounded border border-indigo-900 bg-indigo-800 px-3 py-1.5 text-center text-xs font-medium text-white shadow-sm hover:bg-indigo-700 dark:border-indigo-900"
                 >
                     Browse files
                 </span>
@@ -237,15 +247,15 @@ function MainPage() {
                     disabled={processing}
                 />
             </label>
-            <div style={{ margin: "10px 0" }}>
-                <label className="font-medium mb-2 block">Pick background color:</label>
+            <div style={{ margin: "0px 0" }}>
+                <label className="font-medium mb-2 block text-base text-white">Background Color:</label>
                 <fieldset className="flex flex-wrap gap-3" style={{ border: "none", padding: 0, margin: 0 }}>
                     <legend className="sr-only">Color</legend>
 
                     {/* Green */}
                     <label
                         htmlFor="ColorGreen"
-                        className={`block size-8 rounded-full bg-green-500 shadow-sm cursor-pointer ${
+                        className={` ml-1 block size-4 rounded-full bg-green-500 shadow-sm cursor-pointer ${
                             screenColor === "green"
                                 ? "ring-2 ring-green-500 ring-offset-2"
                                 : ""
@@ -268,7 +278,7 @@ function MainPage() {
                     {/* Blue */}
                     <label
                         htmlFor="ColorBlue"
-                        className={`block size-8 rounded-full bg-blue-500 shadow-sm cursor-pointer ${
+                        className={`block size-4 rounded-full bg-blue-500 shadow-sm cursor-pointer ${
                             screenColor === "blue"
                                 ? "ring-2 ring-blue-500 ring-offset-2"
                                 : ""
@@ -289,8 +299,8 @@ function MainPage() {
                     </label>
                 </fieldset>
             </div>
-            <div style={{ margin: "10px 0", width: 300 }}>
-                <label>
+            <div style={{ margin: "10px 0", width: 400 }}>
+                <label className='font-medium mb-2 block text-base text-white'>
                     Mask Threshold: {maskThreshold.toFixed(2)}
                     <input
                         type="range"
@@ -300,26 +310,28 @@ function MainPage() {
                         value={maskThreshold}
                         onChange={e => setMaskThreshold(Number(e.target.value))}
                         disabled={processing}
-                        style={{ width: "100%", marginLeft: 10 }}
+                        className="w-full accent-indigo-800 border-indigo-900 outline-none"
                     />
                 </label>
             </div>
             <button
                 onClick={handleProcess}
                 disabled={processing}
-                className="inline-block rounded-sm border border-indigo-600 bg-indigo-600 px-12 py-3 text-sm font-medium text-white hover:bg-transparent hover:text-indigo-600 focus:ring-3 focus:outline-hidden transition-colors duration-150"
-                style={{ marginBottom: 16, cursor: processing ? "not-allowed" : "pointer", opacity: processing ? 0.6 : 1 }}
+                className="inline-block rounded border border-indigo-900 bg-indigo-800 px-6 py-2 text-sm font-medium text-white hover:bg-indigo-700 hover:text-white focus:ring-3 focus:outline-hidden transition-colors duration-150"
+                style={{ marginBottom: 10, cursor: processing ? "not-allowed" : "pointer", opacity: processing ? 0.6 : 1 }}
             >
                 Process Video
             </button>
-            <p>{status}</p>
+            <p className="text-white font-medium text-sm">{status}</p>
             {outputUrl && (
                 <div>
-                    <h3>Masked Video Output</h3>
-                    <video src={outputUrl} controls style={{ maxWidth: "100%", marginTop: 20 }} />
-                    <br />
-                    <a href={outputUrl} download="masked_output.mp4">
-                        <button>Download Masked Video</button>
+                    <video src={outputUrl} controls className="max-w-[65%] mt-2 rounded border-1 border-indigo-900" />
+                    <a href={outputUrl} download="output.mp4">
+                        <button 
+                            className="mt-3 inline-block rounded border border-indigo-900 bg-indigo-800 px-6 py-2 text-sm font-medium text-white hover:bg-indigo-700 hover:text-white focus:ring-3 focus:outline-hidden transition-colors duration-150"
+                        >
+                            Download Video
+                        </button>
                     </a>
                 </div>
             )}
