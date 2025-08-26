@@ -1,16 +1,19 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { FFmpeg } from '@ffmpeg/ffmpeg';
 import { fetchFile } from '@ffmpeg/util';
+import Nav from './Nav';
 import * as ort from 'onnxruntime-web';
 
 function MainPage() {
     const [status, setStatus] = useState('');
+    const [progress, setProgress] = useState(0);
     const [processing, setProcessing] = useState(false);
     const [outputUrl, setOutputUrl] = useState('');
     const [screenColor, setScreenColor] = useState('green');
     const [maskThreshold, setMaskThreshold] = useState(0.5);
     const ffmpegRef = useRef(new FFmpeg());
     const videoInputRef = useRef();
+    const [selectedFileName, setSelectedFileName] = useState("");
 
     const imageToTensor = async (imageBitmap) => {
         const targetWidth = 256;
@@ -128,6 +131,7 @@ function MainPage() {
 
         for (let i = 1; i <= frameCount; i++) {
             setStatus(`Processing frame ${i} of ${frameCount}...`);
+            setProgress(Math.round((i / frameCount) * 100));
             const frameName = `frame_${String(i).padStart(3, '0')}.png`;
             const frameData = await ffmpeg.readFile(frameName);
             const imageBitmap = await createImageBitmap(new Blob([frameData.buffer], { type: "image/png" }));
@@ -177,7 +181,8 @@ function MainPage() {
         const outputData = await ffmpeg.readFile("output.mp4");
         const outputBlob = new Blob([outputData.buffer], { type: "video/mp4" });
         setOutputUrl(URL.createObjectURL(outputBlob));
-        setStatus("Download your green screen video below.");
+        setStatus("");
+    setProgress(100);
         setProcessing(false);
     };
 
@@ -198,24 +203,13 @@ function MainPage() {
 
     return (
         
-        <div
-            style={{
-                minHeight: "100vh",
-                paddingLeft: 20,
-                paddingRight: 20,
-                paddingTop: 40,
-                maxWidth: 600,
-                margin: "0 auto"
-            }}
-        >
-            <h1 class="text-white font-bold text-3xl pb-1">
-                MaskOn
-            </h1>
+        <div className="min-h-screen flex flex-col items-center justify-start bg-[#18202b]">
+            <Nav />
             {/* Styled video uploader */}
             <label
                 htmlFor="video-upload"
-                className="flex flex-col items-center rounded border border-gray-300 bg-white p-4 text-gray-900 shadow-sm sm:p-6 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
-                style={{ backgroundColor: "#1F2937",cursor: processing ? "not-allowed" : "pointer", opacity: processing ? 0.6 : 1, marginBottom: 12 }}
+                className={`w-full max-w-md flex flex-col items-center rounded-xl border border-indigo-900 bg-[#202a38] p-6 text-white shadow-lg transition-all duration-200 ${processing ? 'opacity-60 cursor-not-allowed' : 'hover:shadow-2xl'}`}
+                style={{ marginBottom: 18 }}
             >
                 <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -232,9 +226,11 @@ function MainPage() {
                         d="M7.5 7.5h-.75A2.25 2.25 0 0 0 4.5 9.75v7.5a2.25 2.25 0 0 0 2.25 2.25h7.5a2.25 2.25 0 0 0 2.25-2.25v-7.5a2.25 2.25 0 0 0-2.25-2.25h-.75m0-3-3-3m0 0-3 3m3-3v11.25m6-2.25h.75a2.25 2.25 0 0 1 2.25 2.25v7.5a2.25 2.25 0 0 1-2.25 2.25h-7.5a2.25 2.25 0 0 1-2.25-2.25v-.75"
                     />
                 </svg>
-                <span className="mt-4 font-medium dark:text-white">Upload your file</span>
+                <span className="mt-4 font-semibold text-base">
+                  {selectedFileName ? selectedFileName : "Upload your file"}
+                </span>
                 <span
-                    className="mt-2 inline-block rounded border border-indigo-900 bg-indigo-800 px-3 py-1.5 text-center text-xs font-medium text-white shadow-sm hover:bg-indigo-700 dark:border-indigo-900"
+                    className="mt-2 inline-block rounded-full border border-indigo-900 bg-indigo-800 px-4 py-2 text-center text-sm font-semibold text-white shadow-md hover:bg-indigo-700 transition-colors duration-150"
                 >
                     Browse files
                 </span>
@@ -245,11 +241,18 @@ function MainPage() {
                     accept="video/mp4"
                     className="sr-only"
                     disabled={processing}
+                    onChange={e => {
+                      if (e.target.files && e.target.files[0]) {
+                        setSelectedFileName(e.target.files[0].name);
+                      } else {
+                        setSelectedFileName("");
+                      }
+                    }}
                 />
             </label>
-            <div style={{ margin: "0px 0" }}>
-                <label className="font-medium mb-2 block text-base text-white">Background Color:</label>
-                <fieldset className="flex flex-wrap gap-3" style={{ border: "none", padding: 0, margin: 0 }}>
+            <div className="w-full max-w-md mt-4">
+                <label className="font-semibold mb-2 block text-base text-white">Background Color:</label>
+                <fieldset className="flex flex-row gap-4" style={{ border: "none", padding: 0, margin: 0 }}>
                     <legend className="sr-only">Color</legend>
 
                     {/* Green */}
@@ -299,9 +302,9 @@ function MainPage() {
                     </label>
                 </fieldset>
             </div>
-            <div style={{ margin: "10px 0", width: 400 }}>
-                <label className='font-medium mb-2 block text-base text-white'>
-                    Mask Threshold: {maskThreshold.toFixed(2)}
+            <div className="w-full max-w-md mt-6">
+                <label className='font-semibold mb-2 block text-base text-white'>
+                    Mask Threshold: <span className="text-indigo-400">{maskThreshold.toFixed(2)}</span>
                     <input
                         type="range"
                         min={0.2}
@@ -310,25 +313,33 @@ function MainPage() {
                         value={maskThreshold}
                         onChange={e => setMaskThreshold(Number(e.target.value))}
                         disabled={processing}
-                        className="w-full accent-indigo-800 border-indigo-900 outline-none"
+                        className="w-full accent-indigo-800 border-indigo-900 outline-none mt-2"
                     />
                 </label>
             </div>
             <button
                 onClick={handleProcess}
                 disabled={processing}
-                className="inline-block rounded border border-indigo-900 bg-indigo-800 px-6 py-2 text-sm font-medium text-white hover:bg-indigo-700 hover:text-white focus:ring-3 focus:outline-hidden transition-colors duration-150"
-                style={{ marginBottom: 10, cursor: processing ? "not-allowed" : "pointer", opacity: processing ? 0.6 : 1 }}
+                className={`w-2/3 max-w-xs mt-2 rounded-full border border-indigo-900 bg-indigo-800 px-6 py-2 text-base font-semibold text-white shadow-md hover:bg-indigo-700 transition-colors duration-150 ${processing ? 'opacity-60 cursor-not-allowed' : ''}`}
             >
                 Process Video
             </button>
-            <p className="text-white font-medium text-sm">{status}</p>
+            {processing && (
+              <div className="w-2/3 max-w-xs mt-4 h-3 bg-gray-800 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-indigo-500 transition-all duration-200"
+                  style={{ width: `${progress}%` }}
+                ></div>
+              </div>
+            )}
+            {status !== "" && 
+            <p className="text-white font-medium text-sm mt-2">{status}</p>}
             {outputUrl && (
-                <div>
-                    <video src={outputUrl} controls className="max-w-[65%] mt-2 rounded border-1 border-indigo-900" />
-                    <a href={outputUrl} download="output.mp4">
+                <div className="w-full max-w-md mt-8 flex flex-col items-center">
+                    <video src={outputUrl} controls className="w-full rounded-lg border border-indigo-900 shadow-lg" />
+                    <a href={outputUrl} download="output.mp4" className="w-full">
                         <button 
-                            className="mt-3 inline-block rounded border border-indigo-900 bg-indigo-800 px-6 py-2 text-sm font-medium text-white hover:bg-indigo-700 hover:text-white focus:ring-3 focus:outline-hidden transition-colors duration-150"
+                            className="mt-4 w-full rounded-full border border-indigo-900 bg-indigo-800 px-6 py-3 text-base font-semibold text-white shadow-md hover:bg-indigo-700 transition-colors duration-150"
                         >
                             Download Video
                         </button>
