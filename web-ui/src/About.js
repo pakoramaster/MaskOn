@@ -63,7 +63,7 @@ useEffect(() => {
       {/* Footer Section */}
       <footer className="mt-10 mb-2 text-white text-base tracking-tight flex flex-row items-center justify-center gap-1">
         <a
-          href="https://github.com/pakoramaster/rotoscope-tool"
+          href="https://github.com/pakoramaster"
           target="_blank"
           rel="noopener noreferrer"
           className="font-semibold hover:underline flex items-center"
