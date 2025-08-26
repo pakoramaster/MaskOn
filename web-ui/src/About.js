@@ -22,17 +22,17 @@ useEffect(() => {
     >
         <Nav />
       {/* Header Section */}
-      <header className="flex flex-col items-center justify-end text-center h-[170px]">
+      <header className="flex flex-col items-center justify-end text-center h-[150px]">
         <h1 className="text-7xl font-extrabold text-white mb-2 tracking-[.35rem] font-[Poppins,Inter,Arial,sans-serif]">
           MaskOn
         </h1>
-        <h2 className="text-lg font-normal text-indigo-400 mb-2 tracking-wide font-[Inter,Arial,sans-serif]">
+        <h2 className="text-lg font-normal text-indigo-400 tracking-wide font-[Inter,Arial,sans-serif]">
           Greenscreen magic, right in your browser.
         </h2>
       </header>
 
       {/* Body Section */}
-      <main className="flex-1 flex flex-col items-center justify-center w-full">
+      <main className="flex-1 flex flex-col items-center mt-12 w-full">
         <div className="w-screen flex justify-center bg-gradient-to-r from-[#202a38] to-[#16202d]">
           <div className="w-full max-w-7xl px-10 py-6 rounded-2xl flex flex-row items-start gap-10">
             <div className="flex-1 flex flex-col items-start">

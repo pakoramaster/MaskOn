@@ -208,7 +208,7 @@ function MainPage() {
             {/* Styled video uploader */}
             <label
                 htmlFor="video-upload"
-                className={`w-full max-w-md flex flex-col items-center rounded-xl border border-indigo-900 bg-[#202a38] p-6 text-white shadow-lg transition-all duration-200 ${processing ? 'opacity-60 cursor-not-allowed' : 'hover:shadow-2xl'}`}
+                className={`mt-6 w-full max-w-md flex flex-col items-center rounded-xl border border-indigo-900 bg-[#202a38] p-6 text-white shadow transition-all duration-200 ${processing ? 'opacity-60 cursor-not-allowed' : 'hover:shadow-lg'}`}
                 style={{ marginBottom: 18 }}
             >
                 <svg
@@ -313,14 +313,14 @@ function MainPage() {
                         value={maskThreshold}
                         onChange={e => setMaskThreshold(Number(e.target.value))}
                         disabled={processing}
-                        className="w-full accent-indigo-800 border-indigo-900 outline-none mt-2"
+                        className="w-full accent-indigo-800 mt-2 hover:accent-indigo-700 transition-colors duration-150"
                     />
                 </label>
             </div>
             <button
                 onClick={handleProcess}
                 disabled={processing}
-                className={`w-2/3 max-w-xs mt-2 rounded-full border border-indigo-900 bg-indigo-800 px-6 py-2 text-base font-semibold text-white shadow-md hover:bg-indigo-700 transition-colors duration-150 ${processing ? 'opacity-60 cursor-not-allowed' : ''}`}
+                className={`w-2/3 max-w-fit mt-2 rounded-full border border-indigo-900 bg-indigo-800 py-2 px-5 text-base font-semibold text-white shadow-md hover:bg-indigo-700 transition-colors duration-150 ${processing ? 'opacity-60 cursor-not-allowed' : ''}`}
             >
                 Process Video
             </button>
@@ -339,7 +339,7 @@ function MainPage() {
                     <video src={outputUrl} controls className="w-full rounded-lg border border-indigo-900 shadow-lg" />
                     <a href={outputUrl} download="output.mp4" className="w-full">
                         <button 
-                            className="mt-4 w-full rounded-full border border-indigo-900 bg-indigo-800 px-6 py-3 text-base font-semibold text-white shadow-md hover:bg-indigo-700 transition-colors duration-150"
+                            className="mt-4 mb-6 w-full rounded-full border border-indigo-900 bg-indigo-800 px-6 py-3 text-base font-semibold text-white shadow-md hover:bg-indigo-700 transition-colors duration-150"
                         >
                             Download Video
                         </button>
