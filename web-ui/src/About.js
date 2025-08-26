@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 import Nav from './Nav';
 import { FaGithub, FaLinkedin } from "react-icons/fa";
+import bodyImage from "./assets/body_image.png";
 
 function About() {
   const navigate = useNavigate();
@@ -54,7 +55,7 @@ useEffect(() => {
               </button>
             </div>
             <div className="flex flex-col justify-center items-end w-[400px] min-w-[400px]">
-              <img src={require("./assets/body_image.png")} alt="greenscreen phone" className="w-80 h-80 object-contain" />
+              <img src={bodyImage} alt="greenscreen phone" className="w-80 h-80 object-contain" />
             </div>
           </div>
         </div>
