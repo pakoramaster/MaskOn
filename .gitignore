@@ -8,7 +8,7 @@ model-training/coco2017
 model-training/coco_rn.h5
 model-training/model_trainer(old).ipynb
 
-web-ui/public/model.onnx
+# web-ui/public/model.onnx
 
 # dependencies
 /web-ui/node_modules
