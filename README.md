@@ -43,6 +43,7 @@ rotoscope-tool/
 ├── model-training/
 │   └── model-trainer.ipynb      # Jupyter notebook for model training and export
 │   └── coco2017                 # Coco Dataset 
+│   └── requirements.txt         # Required Libraries
 ├── web-ui/
 │   ├── public/
 │   │   └── model.onnx           # Exported ONNX model for browser inference
