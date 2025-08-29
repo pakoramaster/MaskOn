@@ -464,9 +464,9 @@ function MainPage() {
               ? handleProcessVideo
               : handleProcessPicture
           }
-          disabled={processing}
+          disabled={processing || selectedFileName === ""}
           className={`w-2/3 max-w-fit mt-2 rounded-full border border-indigo-900 bg-indigo-800 py-2 px-5 text-base font-semibold text-white shadow-md hover:bg-indigo-700 transition-colors duration-150 ${
-            processing ? "opacity-60 cursor-not-allowed" : ""
+            processing || selectedFileName === "" ? "opacity-60 cursor-not-allowed" : ""
           }`}
         >
           Process {selectedFileName && selectedFileName.toLowerCase().endsWith(".mp4") ? "Video" : "Picture"}
