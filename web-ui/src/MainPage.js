@@ -9,7 +9,7 @@ function MainPage() {
   const [progress, setProgress] = useState(0);
   const [processing, setProcessing] = useState(false);
   const [outputUrl, setOutputUrl] = useState("");
-  const [screenColor, setScreenColor] = useState("green");
+  const [screenColor, setScreenColor] = useState("");
   const [maskThreshold, setMaskThreshold] = useState(0.5);
   const ffmpegRef = useRef(new FFmpeg());
   const videoInputRef = useRef();
@@ -48,11 +48,11 @@ function MainPage() {
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
 
     // Choose background color based on user selection
-    let bgColor;
+    let bgColor=[0, 0, 0, 0];
     if (screenColor === "green") {
-      bgColor = [0, 255, 0];
-    } else {
-      bgColor = [0, 0, 255];
+      bgColor = [0, 255, 0, 255];
+    } else if (screenColor === "blue") {
+      bgColor = [0, 0, 255, 255];
     }
 
     for (let i = 0; i < mask.length; i++) {
@@ -66,14 +66,95 @@ function MainPage() {
         imageData.data[i * 4 + 0] = bgColor[0]; // R
         imageData.data[i * 4 + 1] = bgColor[1]; // G
         imageData.data[i * 4 + 2] = bgColor[2]; // B
-        imageData.data[i * 4 + 3] = 255; // A
+        imageData.data[i * 4 + 3] = bgColor[3]; // A
       }
     }
     ctx.putImageData(imageData, 0, 0);
     return canvas;
   };
 
-  const handleProcess = async () => {
+  const handleProcessPicture = async () => {
+    const imageFile = videoInputRef.current.files[0];
+    if (!imageFile) {
+      alert("Please upload an image file.");
+      return;
+    }
+
+    setProcessing(true);
+    setStatus("Loading image...");
+    setProgress(10);
+
+    // Load image as bitmap
+    const imageBitmap = await createImageBitmap(imageFile);
+
+    setStatus("Loading model...");
+    const session = await ort.InferenceSession.create("model.onnx");
+
+    setStatus("Segmenting...");
+    setProgress(30);
+
+    // Prepare tensor
+    const tensor = await imageToTensor(imageBitmap);
+    const maskTensor = await session.run({ input_4: tensor });
+    const outputName = session.outputNames[0];
+    const mask = maskTensor[outputName].data;
+
+    // Prepare mask for original image size
+    const maskWidth = 256;
+    const maskHeight = 256;
+    const maskCanvasSmall = new OffscreenCanvas(maskWidth, maskHeight);
+    const maskCtxSmall = maskCanvasSmall.getContext("2d");
+    const maskImageData = maskCtxSmall.createImageData(maskWidth, maskHeight);
+    for (let j = 0; j < mask.length; j++) {
+      const value = Math.round(mask[j] * 255);
+      maskImageData.data[j * 4 + 0] = value;
+      maskImageData.data[j * 4 + 1] = value;
+      maskImageData.data[j * 4 + 2] = value;
+      maskImageData.data[j * 4 + 3] = 255;
+    }
+    maskCtxSmall.putImageData(maskImageData, 0, 0);
+
+    // Resize mask to match original image size
+    const maskCanvasLarge = new OffscreenCanvas(
+      imageBitmap.width,
+      imageBitmap.height
+    );
+    const maskCtxLarge = maskCanvasLarge.getContext("2d");
+    maskCtxLarge.drawImage(
+      maskCanvasSmall,
+      0,
+      0,
+      imageBitmap.width,
+      imageBitmap.height
+    );
+    const maskLargeImageData = maskCtxLarge.getImageData(
+      0,
+      0,
+      imageBitmap.width,
+      imageBitmap.height
+    );
+    const maskLarge = new Float32Array(imageBitmap.width * imageBitmap.height);
+    for (let j = 0; j < maskLarge.length; j++) {
+      maskLarge[j] = maskLargeImageData.data[j * 4] / 255;
+    }
+
+    setStatus("Compositing...");
+    setProgress(70);
+
+    // Apply mask and get composited image
+    const composited = await applyMask(imageBitmap, maskLarge);
+
+    setStatus("Preparing download...");
+    setProgress(90);
+
+    const compositedBlob = await composited.convertToBlob({ type: "image/png" });
+    setOutputUrl(URL.createObjectURL(compositedBlob));
+
+    setStatus("");
+    setProgress(100);
+    setProcessing(false);
+  }
+  const handleProcessVideo = async () => {
     const videoFile = videoInputRef.current.files[0];
     if (!videoFile) {
       alert("Please upload a video file.");
@@ -244,6 +325,14 @@ function MainPage() {
       document.body.style.background = originalBg;
     };
   }, []);
+  useEffect(() => {
+    setOutputUrl("");
+    if (selectedFileName && selectedFileName.toLowerCase().endsWith(".mp4")) {
+      setScreenColor("green");
+    } else {
+      setScreenColor("");
+    }
+  }, [selectedFileName]);
 
   return (
     <div className="min-h-screen bg-[#18202b]">
@@ -282,7 +371,7 @@ function MainPage() {
             type="file"
             id="video-upload"
             ref={videoInputRef}
-            accept="video/mp4"
+            accept="video/mp4,image/png,image/jpeg,image/jpg"
             className="sr-only"
             disabled={processing}
             onChange={(e) => {
@@ -294,63 +383,65 @@ function MainPage() {
             }}
           />
         </label>
-        <div className="w-full max-w-md">
-          <label className="font-semibold mb-2 block text-base text-white">
-            Background Color:
-          </label>
-          <fieldset
-            className="flex flex-row gap-4"
-            style={{ border: "none", padding: 0, margin: 0 }}
-          >
-            <legend className="sr-only">Color</legend>
-
-            {/* Green */}
-            <label
-              htmlFor="ColorGreen"
-              className={` ml-1 block size-4 rounded-full bg-green-500 shadow-sm cursor-pointer ${
-                screenColor === "green"
-                  ? "ring-2 ring-green-500 ring-offset-2"
-                  : ""
-              }`}
-              style={{ display: "inline-block" }}
-            >
-              <input
-                type="radio"
-                name="ColorOption"
-                value="green"
-                id="ColorGreen"
-                className="sr-only"
-                checked={screenColor === "green"}
-                onChange={() => setScreenColor("green")}
-                disabled={processing}
-              />
-              <span className="sr-only">Green</span>
+        {selectedFileName && selectedFileName.toLowerCase().endsWith(".mp4") && (
+          <div className="w-full max-w-md">
+            <label className="font-semibold mb-2 block text-base text-white">
+              Background Color:
             </label>
-
-            {/* Blue */}
-            <label
-              htmlFor="ColorBlue"
-              className={`block size-4 rounded-full bg-blue-500 shadow-sm cursor-pointer ${
-                screenColor === "blue"
-                  ? "ring-2 ring-blue-500 ring-offset-2"
-                  : ""
-              }`}
-              style={{ display: "inline-block" }}
+            <fieldset
+              className="flex flex-row gap-4"
+              style={{ border: "none", padding: 0, margin: 0 }}
             >
-              <input
-                type="radio"
-                name="ColorOption"
-                value="blue"
-                id="ColorBlue"
-                className="sr-only"
-                checked={screenColor === "blue"}
-                onChange={() => setScreenColor("blue")}
-                disabled={processing}
-              />
-              <span className="sr-only">Blue</span>
-            </label>
-          </fieldset>
-        </div>
+              <legend className="sr-only">Color</legend>
+
+              {/* Green */}
+              <label
+                htmlFor="ColorGreen"
+                className={` ml-1 block size-4 rounded-full bg-green-500 shadow-sm cursor-pointer ${
+                  screenColor === "green"
+                    ? "ring-2 ring-green-500 ring-offset-2"
+                    : ""
+                }`}
+                style={{ display: "inline-block" }}
+              >
+                <input
+                  type="radio"
+                  name="ColorOption"
+                  value="green"
+                  id="ColorGreen"
+                  className="sr-only"
+                  checked={screenColor === "green"}
+                  onChange={() => setScreenColor("green")}
+                  disabled={processing}
+                />
+                <span className="sr-only">Green</span>
+              </label>
+
+              {/* Blue */}
+              <label
+                htmlFor="ColorBlue"
+                className={`block size-4 rounded-full bg-blue-500 shadow-sm cursor-pointer ${
+                  screenColor === "blue"
+                    ? "ring-2 ring-blue-500 ring-offset-2"
+                    : ""
+                }`}
+                style={{ display: "inline-block" }}
+              >
+                <input
+                  type="radio"
+                  name="ColorOption"
+                  value="blue"
+                  id="ColorBlue"
+                  className="sr-only"
+                  checked={screenColor === "blue"}
+                  onChange={() => setScreenColor("blue")}
+                  disabled={processing}
+                />
+                <span className="sr-only">Blue</span>
+              </label>
+            </fieldset>
+          </div>
+        )}
         <div className="w-full max-w-md mt-6">
           <label className="font-semibold mb-2 block text-base text-white">
             Mask Threshold:{" "}
@@ -368,13 +459,17 @@ function MainPage() {
           </label>
         </div>
         <button
-          onClick={handleProcess}
+          onClick={
+            selectedFileName && selectedFileName.toLowerCase().endsWith(".mp4")
+              ? handleProcessVideo
+              : handleProcessPicture
+          }
           disabled={processing}
           className={`w-2/3 max-w-fit mt-2 rounded-full border border-indigo-900 bg-indigo-800 py-2 px-5 text-base font-semibold text-white shadow-md hover:bg-indigo-700 transition-colors duration-150 ${
             processing ? "opacity-60 cursor-not-allowed" : ""
           }`}
         >
-          Process Video
+          Process {selectedFileName && selectedFileName.toLowerCase().endsWith(".mp4") ? "Video" : "Picture"}
         </button>
         {processing && (
           <div className="w-2/3 max-w-xs mt-4 h-3 bg-gray-800 rounded-full overflow-hidden">
@@ -389,16 +484,33 @@ function MainPage() {
         )}
         {outputUrl && (
           <div className="w-full max-w-md mt-8 flex flex-col items-center">
-            <video
-              src={outputUrl}
-              controls
-              className="w-full rounded-lg border border-indigo-900 shadow-lg"
-            />
-            <a href={outputUrl} download="output.mp4" className="w-full">
-              <button className="mt-4 mb-6 w-full rounded-full border border-indigo-900 bg-indigo-800 px-6 py-3 text-base font-semibold text-white shadow-md hover:bg-indigo-700 transition-colors duration-150">
-                Download Video
-              </button>
-            </a>
+            {selectedFileName && selectedFileName.toLowerCase().endsWith(".mp4") ? (
+              <>
+                <video
+                  src={outputUrl}
+                  controls
+                  className="w-full rounded-lg border border-indigo-900 shadow-lg"
+                />
+                <a href={outputUrl} download="output.mp4" className="w-full">
+                  <button className="mt-4 mb-6 w-full rounded-full border border-indigo-900 bg-indigo-800 px-6 py-3 text-base font-semibold text-white shadow-md hover:bg-indigo-700 transition-colors duration-150">
+                    Download Video
+                  </button>
+                </a>
+              </>
+            ) : (
+              <>
+                <img
+                  src={outputUrl}
+                  alt="Processed"
+                  className="w-full rounded-lg border border-indigo-900 shadow-lg object-contain"
+                />
+                <a href={outputUrl} download="output.png" className="w-full">
+                  <button className="mt-4 mb-6 w-full rounded-full border border-indigo-900 bg-indigo-800 px-6 py-3 text-base font-semibold text-white shadow-md hover:bg-indigo-700 transition-colors duration-150">
+                    Download Image
+                  </button>
+                </a>
+              </>
+            )}
           </div>
         )}
       </div>

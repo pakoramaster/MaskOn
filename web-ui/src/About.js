@@ -22,11 +22,11 @@ function About() {
       <Nav />
       {/* Header Section */}
       <header className="flex flex-col items-center justify-end text-center h-[150px]">
-        <h1 className="text-7xl font-extrabold text-white mb-2 tracking-[.35rem] font-[Poppins,Inter,Arial,sans-serif]">
+        <h1 className="text-7xl font-extrabold text-white mb-2 font-[Poppins,Inter,Arial,sans-serif]">
           MaskOn
         </h1>
         <h2 className="text-lg font-normal text-indigo-400 tracking-wide font-[Inter,Arial,sans-serif]">
-          Greenscreen magic, right in your browser.
+          Instant background removal, in your browser.
         </h2>
       </header>
 
@@ -40,14 +40,14 @@ function About() {
               </h2>
               <ul className="text-left text-base text-[#e3eaf3] mb-7 w-full pl-4 list-disc font-medium font-sans">
                 <li className="mb-2">
-                  Runs entirely in your browser – your videos never leave your
+                  Runs entirely in your browser – your photos and videos never leave your
                   device.
                 </li>
                 <li className="mb-2">
                   No uploads, no waiting, no privacy concerns.
                 </li>
                 <li className="mb-2">
-                  Instant greenscreen creation for content creators, educators,
+                  Instant background removal for content creators, educators,
                   and more.
                 </li>
               </ul>
